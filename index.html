@@ -117,7 +117,6 @@ const DATA = {
   ],
   indiaOfficialCharts: [
     {name:"Top 50 - India", desc:"Spotify's official algorithmic top songs chart for India, updated daily", url:"https://open.spotify.com/playlist/37i9dQZEVXbLZ52XmnySJg"},
-    {name:"Viral 50 India — discontinued", desc:"Spotify discontinued its entire Viral 50 chart system worldwide in May 2026 with no formal announcement. No India-specific 'Viral Hits' edition exists yet, so this links to the global edition instead.", url:"https://open.spotify.com/playlist/37i9dQZF1DX2L0iB23Enbq"},
     {name:"Hot Hits India", desc:"Editorial pick of the biggest current hits across genres in India", url:"https://open.spotify.com/playlist/37i9dQZF1DX0ieekvzt1Ic"},
     {name:"Hot Hits Hindi", desc:"Editorial pick of the biggest current Hindi-language hits", url:"https://open.spotify.com/playlist/37i9dQZF1DX0XUfTFmNBRM"},
     {name:"Hot Hits Punjabi", desc:"Editorial pick of the biggest current Punjabi-language hits", url:"https://open.spotify.com/playlist/37i9dQZF1DWXVJK4aT7pmk"},
@@ -234,3 +233,133 @@ const DATA = {
     }
   ]
 };
+
+let activeTab = 'global';
+
+function fmtDays(d) {
+  if (d <= 14) return '<span style="color:#D41C1C; font-weight:700;">NEW &middot; ' + d + 'd</span>';
+  return d + 'd on chart';
+}
+
+function fmtMove(pos, prev) {
+  if (prev === pos) return '<span class="move moveFlat">&mdash; no change</span>';
+  if (prev > pos) return '<span class="move moveUp">&#9650; up ' + (prev - pos) + '</span><br><span class="movePrev">was #' + prev + '</span>';
+  return '<span class="move moveDown">&#9660; down ' + (pos - prev) + '</span><br><span class="movePrev">was #' + prev + '</span>';
+}
+
+function trackLink(id) {
+  return 'https://open.spotify.com/track/' + id;
+}
+
+function artistLink(id) {
+  return 'https://open.spotify.com/artist/' + id;
+}
+
+function renderTable(rows) {
+  let html = '<table>';
+  rows.forEach(r => {
+    html += '<tr>' +
+      '<td style="font-weight: 900; color: #D41C1C; width: 32px;">' + r.pos + '</td>' +
+      '<td><a class="track" href="' + trackLink(r.id) + '" target="_blank" rel="noopener">' +
+        '<div style="font-weight: 700;">' + r.title + '</div></a>' +
+        '<div style="font-size: 12px; color: #9A9A9A;">' + r.artist + '</div></td>' +
+      '<td style="text-align: center; width: 110px;">' + fmtMove(r.pos, r.prev) + '</td>' +
+      '<td style="text-align: right; font-size: 11px; color: #6E6E6E; white-space: nowrap;">' + fmtDays(r.days) + '</td>' +
+      '</tr>';
+  });
+  html += '</table>';
+  return html;
+}
+
+function renderIndiaFull() {
+  let html = '<div class="section"><h2>Official India Charts &amp; Playlists</h2><div class="chartGrid">';
+  DATA.indiaOfficialCharts.forEach(c => {
+    html += '<div class="chartCard"><div class="label">Live Spotify Playlist</div>' +
+      '<a class="news-link" style="color:#D41C1C;" href="' + c.url + '" target="_blank" rel="noopener">' + c.name + ' &rarr;</a>' +
+      '<div style="font-size:12px; color:#9A9A9A; margin-top:4px;">' + c.desc + '</div></div>';
+  });
+  html += '</div></div>';
+
+  html += '<div class="section"><h2>India Top Songs (Top 20 of 200, daily streaming chart, with vs. previous day)</h2>' + renderTable(DATA.indiaTop) + '</div>';
+
+  return html;
+}
+
+function renderNews() {
+  let html = '<div style="font-size:12px; color:#9A9A9A; margin-bottom:12px;">Stories from the past 7 days only, refreshed on request.</div>';
+  DATA.news.forEach(n => {
+    html += '<div class="newsCard">' +
+      '<div class="newsMeta">' + n.date + ' &middot; ' + n.source + '</div>' +
+      '<a class="news-link" href="' + n.url + '" target="_blank" rel="noopener">' + n.title + '</a>' +
+      '<div class="newsSummary">' + n.summary + '</div>' +
+      '</div>';
+  });
+  return html;
+}
+
+function renderArtists() {
+  let html = '<div style="font-size:12px; color:#9A9A9A; margin-bottom:12px;">Collabor8 roster: Spotify presence, playlist placements, and the most recent press found for each. News older than 7 days is kept and labeled when it is the most current thing available.</div>';
+  DATA.artists.forEach(a => {
+    html += '<div class="artistCard">';
+    html += '<div class="artistHeader"><h3><a class="news-link" href="' + artistLink(a.spotifyId) + '" target="_blank" rel="noopener">' + a.name + '</a></h3>' +
+      '<div class="listeners"><b>' + a.listeners + '</b> monthly listeners</div></div>';
+    html += '<div style="font-size:13px; color:#D8D8D6;">Latest release: <b>' + a.latestRelease + '</b></div>';
+    html += '<div style="font-size:12px; color:#9A9A9A; margin-top:2px;">Top track: ' + a.topTrack + '</div>';
+    if (a.upcoming) html += '<div style="font-size:12px; color:#D41C1C; margin-top:4px; font-weight:700;">' + a.upcoming + '</div>';
+
+    if (a.playlists.length > 0) {
+      html += '<div class="subLabel">On these playlists</div><div class="pillRow">';
+      a.playlists.forEach(p => {
+        html += '<div class="pill"><a href="' + p.url + '" target="_blank" rel="noopener">' + p.name + '</a></div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div class="subLabel">On these playlists</div><div style="font-size:12px; color:#6E6E6E;">No official Spotify editorial or algorithmic playlist placements found as of this check.</div>';
+    }
+
+    if (a.news.length > 0) {
+      html += '<div class="subLabel">Recent press</div>';
+      a.news.forEach(n => {
+        html += '<div class="newsCard" style="margin-bottom:6px;">' +
+          '<div class="newsMeta">' + n.date + ' &middot; ' + n.source + '</div>' +
+          '<a class="news-link" href="' + n.url + '" target="_blank" rel="noopener">' + n.title + '</a>' +
+          '<div class="newsSummary">' + n.summary + '</div></div>';
+      });
+    } else {
+      html += '<div class="subLabel">Recent press</div><div style="font-size:12px; color:#6E6E6E;">No news coverage found in this check.</div>';
+    }
+    html += '</div>';
+  });
+  return html;
+}
+
+function render() {
+  const tabs = document.getElementById('tabs');
+  const tabDefs = [
+    {id:'global', label:'Spotify Global'},
+    {id:'india', label:'Spotify India (Full Report)'},
+    {id:'artists', label:'Collabor8 Artists'},
+    {id:'news', label:'India Music News'}
+  ];
+  tabs.innerHTML = '';
+  tabDefs.forEach(t => {
+    const btn = document.createElement('button');
+    btn.textContent = t.label;
+    btn.style.cssText = 'padding: 8px 14px; border-radius: 4px; border: 1px solid ' + (activeTab===t.id?'#E4392F':'#2C2C2C') + '; background: ' + (activeTab===t.id?'#E4392F':'#161616') + '; color: ' + (activeTab===t.id?'#FFFFFF':'#C9C9C9') + '; font-weight: 700; font-size: 12px; cursor: pointer; text-transform: uppercase;';
+    btn.onclick = () => { activeTab = t.id; render(); };
+    tabs.appendChild(btn);
+  });
+
+  const content = document.getElementById('content');
+  if (activeTab === 'global') content.innerHTML = '<div class="section"><h2>Global Top 10 (vs. previous day)</h2>' + renderTable(DATA.global) + '</div>';
+  else if (activeTab === 'india') content.innerHTML = renderIndiaFull();
+  else if (activeTab === 'artists') content.innerHTML = renderArtists();
+  else content.innerHTML = renderNews();
+
+  document.getElementById('lastUpdated').textContent = 'Charts as of ' + DATA.chartDate + ' | News checked ' + DATA.newsAsOf;
+}
+
+render();
+</script>
+</body>
+</html>
